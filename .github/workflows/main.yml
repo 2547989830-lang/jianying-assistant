@@ -7,29 +7,59 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest
-
+    # 指定具体的macOS版本，避免latest带来的环境波动
+    runs-on: macos-14
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4  # 升级到最新稳定版
+
+      # 配置Git身份（解决Committer identity unknown错误）
+      - name: Configure Git identity
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5  # 升级到最新稳定版
         with:
           python-version: '3.10'
+          # 启用缓存，加速依赖安装
+          cache: 'pip'
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          # 增加错误处理，确保依赖安装失败时能明确提示
+          if ! pip install -r requirements.txt; then
+            echo "依赖安装失败，请检查requirements.txt文件"
+            exit 1
+          fi
           pip install pyinstaller
 
       - name: Build with PyInstaller
         run: |
-          pyinstaller --windowed --onefile --icon=app_icon.ico --name="剪映小助手" jianying_v3.py
+          # 打印当前目录和文件，方便调试
+          ls -la
+          # 执行打包，增加--clean参数清理缓存，避免旧文件干扰
+          pyinstaller --clean --windowed --onefile --icon=app_icon.ico --name="剪映小助手" jianying_v3.py
+        # 捕获打包错误，输出更友好的提示
+        continue-on-error: false
+
+      - name: Verify build output
+        run: |
+          # 检查打包产物是否存在
+          if [ -d "dist/剪映小助手.app" ]; then
+            echo "打包成功，产物路径：dist/剪映小助手.app"
+            ls -la dist/
+          else
+            echo "打包失败，未找到.app文件"
+            exit 1
+          fi
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4  # 升级到最新稳定版
         with:
           name: 剪映小助手-macOS
           path: dist/剪映小助手.app
+          # 设置产物保留时间（可选，默认90天）
+          retention-days: 30
