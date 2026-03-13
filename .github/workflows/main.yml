@@ -25,18 +25,18 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
+          python -m pip install --upgrade pip setuptools wheel
           if ! pip install -r requirements.txt; then
             echo "依赖安装失败，请检查requirements.txt文件"
             exit 1
           fi
-          pip install pyinstaller
+          pip install pyinstaller==6.0.0   # 固定版本避免兼容性问题
 
       - name: Build with PyInstaller
         run: |
-          # 打包命令：包含图标和备用二维码图片
+          # 打包命令（使用 .icns 图标，并包含备用图片）
           pyinstaller --clean --windowed --onefile \
-            --icon=app_icon.ico \
+            --icon=app_icon.icns \
             --add-data "wechat_default.png:." \
             --name="剪映小助手" \
             jianying_v3.py
@@ -45,7 +45,7 @@ jobs:
         run: |
           if [ -d "dist/剪映小助手.app" ]; then
             echo "打包成功，产物路径：dist/剪映小助手.app"
-            ls -la dist/
+            ls -la dist/剪映小助手.app/Contents/MacOS/   # 检查可执行文件是否存在
           else
             echo "打包失败，未找到.app文件"
             exit 1
